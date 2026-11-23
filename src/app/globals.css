@@ -1,26 +1,379 @@
 @import "tailwindcss";
 
+/* =========================================
+   AURELIS — THE BURGUNDY EDITION
+   Beyond Ordinary, Within Reach.
+========================================= */
+
+/* 01. BRAND TOKENS */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Core palette */
+  --obsidian: #0a0a0b;
+  --dark-wine: #470d20;
+  --wine-deep: #350817;
+  --wine-light: #64152f;
+  --warm-cream: #f1e8d8;
+  --cream-light: #f8f4ed;
+  --cream-deep: #e8dece;
+  --champagne: #b9a58a;
+  --champagne-light: #d2bea5;
+  --muted-grey: #85817e;
+  --pure-white: #ffffff;
+
+  /* Primary site appearance */
+  --background: var(--dark-wine);
+  --foreground: var(--warm-cream);
+
+  /* Surfaces */
+  --surface-primary: var(--dark-wine);
+  --surface-secondary: var(--wine-deep);
+  --surface-light: var(--warm-cream);
+  --surface-light-alt: var(--cream-light);
+  --surface-dark: var(--obsidian);
+
+  /* Text */
+  --text-on-wine: var(--warm-cream);
+  --text-on-cream: var(--dark-wine);
+  --text-muted-light: #c9b9ad;
+  --text-muted-dark: #76645d;
+
+  /* Borders */
+  --border-light: rgba(241, 232, 216, 0.16);
+  --border-dark: rgba(71, 13, 32, 0.16);
+
+  /* Layout */
+  --container-width: 1440px;
+  --page-gutter: clamp(20px, 5vw, 80px);
+
+  /* Motion */
+  --transition-fast: 180ms ease;
+  --transition-smooth: 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-slow: 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* 02. TAILWIND THEME */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-obsidian: var(--obsidian);
+  --color-wine: var(--dark-wine);
+  --color-wine-deep: var(--wine-deep);
+  --color-wine-light: var(--wine-light);
+  --color-cream: var(--warm-cream);
+  --color-cream-light: var(--cream-light);
+  --color-cream-deep: var(--cream-deep);
+  --color-champagne: var(--champagne);
+  --color-champagne-light: var(--champagne-light);
+  --color-muted: var(--muted-grey);
+  --color-pure-white: var(--pure-white);
+
+  --font-editorial: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-code: var(--font-mono);
+
+  --breakpoint-xs: 480px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* 03. GLOBAL RESET */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+  background: var(--dark-wine);
+  color: var(--warm-cream);
 }
 
 body {
+  min-height: 100vh;
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-body), Arial, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+::selection {
+  background: var(--champagne);
+  color: var(--wine-deep);
+}
+
+/* 04. TYPOGRAPHY */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.font-body {
+  font-family: var(--font-body), Arial, sans-serif;
+}
+
+.font-mono {
+  font-family: var(--font-mono), monospace;
+}
+
+/* 05. BRAND COLOR UTILITIES */
+
+/* Dark surfaces */
+.bg-wine {
+  background-color: var(--dark-wine);
+}
+
+.bg-wine-deep {
+  background-color: var(--wine-deep);
+}
+
+.bg-obsidian {
+  background-color: var(--obsidian);
+}
+
+/* Light surfaces */
+.bg-cream {
+  background-color: var(--warm-cream);
+}
+
+.bg-cream-light {
+  background-color: var(--cream-light);
+}
+
+.bg-cream-deep {
+  background-color: var(--cream-deep);
+}
+
+/* Text contrast */
+.text-on-wine {
+  color: var(--warm-cream);
+}
+
+.text-on-cream {
+  color: var(--dark-wine);
+}
+
+.text-on-light {
+  color: var(--dark-wine);
+}
+
+.text-on-dark {
+  color: var(--warm-cream);
+}
+
+/* Champagne details */
+.text-champagne {
+  color: var(--champagne);
+}
+
+/* 06. BUTTON UTILITIES */
+.button-wine {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 14px 24px;
+  background: var(--dark-wine);
+  color: var(--warm-cream);
+  transition:
+    background var(--transition-smooth),
+    color var(--transition-smooth);
+}
+
+.button-wine:hover {
+  background: var(--wine-light);
+  color: var(--pure-white);
+}
+
+.button-cream {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 14px 24px;
+  background: var(--warm-cream);
+  color: var(--dark-wine);
+  transition:
+    background var(--transition-smooth),
+    color var(--transition-smooth);
+}
+
+.button-cream:hover {
+  background: var(--champagne-light);
+  color: var(--wine-deep);
+}
+
+/* 07. LAYOUT UTILITIES */
+.container-main {
+  width: min(100% - (var(--page-gutter) * 2), var(--container-width));
+  margin-inline: auto;
+}
+
+.section-spacing {
+  padding-block: clamp(64px, 9vw, 128px);
+}
+
+.section-spacing-sm {
+  padding-block: clamp(40px, 6vw, 80px);
+}
+
+/* 08. EDITORIAL UTILITIES */
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.reveal-line {
+  overflow: hidden;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* 09. INTERACTIVE ELEMENTS */
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--champagne);
+  outline-offset: 4px;
+}
+
+/* Clean search input focus */
+input:focus,
+input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted-grey);
+  opacity: 0.85;
+}
+
+/* 10. SCROLLBAR */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--champagne) var(--wine-deep);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--wine-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--champagne);
+  border: 2px solid var(--wine-deep);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--champagne-light);
+}
+
+/* 11. MOTION ACCESSIBILITY */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 12. RESPONSIVE ADJUSTMENTS */
+@media (max-width: 640px) {
+  :root {
+    --page-gutter: 20px;
+  }
+
+  .section-spacing {
+    padding-block: 64px;
+  }
 }
