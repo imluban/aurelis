@@ -44,6 +44,33 @@ type ProductWithCategory = ProductRow & {
 
 type FilterType = "all" | "published" | "drafts" | "out-of-stock";
 
+const actionButtonStyle: React.CSSProperties = {
+  color: "#470d20",
+  backgroundColor: "transparent",
+  borderColor: "rgba(71, 13, 32, 0.2)",
+};
+
+const creamButtonStyle: React.CSSProperties = {
+  backgroundColor: "#470d20",
+  color: "#f1e8d8",
+};
+
+function handleActionMouseEnter(
+  event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>,
+) {
+  event.currentTarget.style.backgroundColor = "#470d20";
+  event.currentTarget.style.color = "#f1e8d8";
+  event.currentTarget.style.borderColor = "#470d20";
+}
+
+function handleActionMouseLeave(
+  event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>,
+) {
+  event.currentTarget.style.backgroundColor = "transparent";
+  event.currentTarget.style.color = "#470d20";
+  event.currentTarget.style.borderColor = "rgba(71, 13, 32, 0.2)";
+}
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductWithCategory[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
@@ -92,8 +119,11 @@ export default function AdminProductsPage() {
             : "Uncategorised",
         })),
       );
+
+      setError("");
     } catch (err) {
       console.error("AURELIS product loading error:", err);
+
       setError(
         err instanceof Error ? err.message : "We couldn't load your products.",
       );
@@ -160,12 +190,18 @@ export default function AdminProductsPage() {
     try {
       const supabase = createClient();
 
-      const { error: updateError } = await supabase
+      const { data: updatedProduct, error: updateError } = await supabase
         .from("products")
         .update({ is_published: !product.is_published })
-        .eq("id", product.id);
+        .eq("id", product.id)
+        .select("id")
+        .maybeSingle();
 
       if (updateError) throw updateError;
+
+      if (!updatedProduct) {
+        throw new Error("The product status could not be updated.");
+      }
 
       setProducts((current) =>
         current.map((item) =>
@@ -176,6 +212,7 @@ export default function AdminProductsPage() {
       );
     } catch (err) {
       console.error("AURELIS product status error:", err);
+
       setError(
         err instanceof Error ? err.message : "We couldn't update this product.",
       );
@@ -186,6 +223,7 @@ export default function AdminProductsPage() {
 
   const publishedCount = products.filter((item) => item.is_published).length;
   const draftCount = products.length - publishedCount;
+
   const outOfStockCount = products.filter(
     (item) => item.stock_quantity <= 0,
   ).length;
@@ -194,14 +232,17 @@ export default function AdminProductsPage() {
     <main className="min-h-screen bg-[#f8f4ed] text-[#350817]">
       <header className="border-b border-[#470d20]/10 bg-[#350817] text-[#f1e8d8]">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-5 lg:px-10">
-          <Link href="/admin" className="font-serif text-3xl tracking-[0.15em]">
+          <Link
+            href="/admin"
+            className="font-serif text-3xl tracking-[0.15em] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d2bea5]"
+          >
             AURELIS
           </Link>
 
           <Link
             href="/"
             target="_blank"
-            className="flex items-center gap-2 text-xs text-[#f1e8d8]/65 transition-colors hover:text-[#d2bea5]"
+            className="flex items-center gap-2 text-xs text-[#f1e8d8]/80 transition-colors hover:text-[#d2bea5] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#d2bea5]"
           >
             View storefront <ArrowUpRight size={14} />
           </Link>
@@ -211,7 +252,7 @@ export default function AdminProductsPage() {
       <div className="mx-auto max-w-[1440px] px-6 py-12 lg:px-10 lg:py-16">
         <Link
           href="/admin"
-          className="mb-8 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] text-[#9b806b] transition-colors hover:text-[#470d20]"
+          className="mb-8 inline-flex items-center gap-2 font-mono text-[10px] tracking-[0.15em] text-[#806c59] transition-colors hover:text-[#470d20] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#470d20]"
         >
           <ArrowLeft size={14} />
           BACK TO OVERVIEW
@@ -219,7 +260,7 @@ export default function AdminProductsPage() {
 
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.25em] text-[#9b806b]">
+            <p className="font-mono text-[10px] tracking-[0.25em] text-[#806c59]">
               STORE MANAGEMENT / CATALOGUE
             </p>
 
@@ -227,14 +268,15 @@ export default function AdminProductsPage() {
               Products<span className="italic">.</span>
             </h1>
 
-            <p className="mt-3 text-sm text-[#350817]/55">
+            <p className="mt-3 text-sm text-[#350817]/70">
               Manage your collection, inventory and product visibility.
             </p>
           </div>
 
           <Link
             href="/admin/products/new"
-            className="inline-flex items-center justify-center gap-3 bg-[#470d20] px-6 py-4 font-mono text-[10px] tracking-[0.15em] text-[#f1e8d8] transition-colors hover:bg-[#64152f]"
+            style={creamButtonStyle}
+            className="inline-flex items-center justify-center gap-3 px-6 py-4 font-mono text-[10px] tracking-[0.15em] transition-colors hover:!bg-[#64152f] hover:!text-[#f1e8d8] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#470d20]"
           >
             <Plus size={16} />
             ADD NEW PRODUCT
@@ -252,7 +294,7 @@ export default function AdminProductsPage() {
               key={stat.label}
               className="border border-[#470d20]/10 bg-white/60 p-5 sm:p-7"
             >
-              <p className="font-mono text-[9px] tracking-[0.12em] text-[#9b806b] sm:text-[10px]">
+              <p className="font-mono text-[9px] tracking-[0.12em] text-[#806c59] sm:text-[10px]">
                 {stat.label.toUpperCase()}
               </p>
 
@@ -277,7 +319,7 @@ export default function AdminProductsPage() {
             <div className="relative flex-1">
               <Search
                 size={17}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9b806b]"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#806c59]"
               />
 
               <input
@@ -285,16 +327,17 @@ export default function AdminProductsPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search products by name, SKU or slug..."
-                className="w-full border border-[#470d20]/15 bg-white/70 py-4 pl-12 pr-4 text-sm text-[#350817] outline-none placeholder:text-[#350817]/35 focus:border-[#470d20]"
+                className="w-full border border-[#470d20]/15 bg-white/70 py-4 pl-12 pr-4 text-sm text-[#350817] outline-none placeholder:text-[#350817]/45 focus:border-[#470d20] focus-visible:ring-2 focus-visible:ring-[#470d20]/20"
               />
             </div>
 
             <select
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value)}
-              className="border border-[#470d20]/15 bg-white/70 px-4 py-4 text-sm text-[#350817] outline-none focus:border-[#470d20]"
+              className="border border-[#470d20]/15 bg-white/70 px-4 py-4 text-sm text-[#350817] outline-none focus:border-[#470d20] focus-visible:ring-2 focus-visible:ring-[#470d20]/20"
             >
               <option value="all">All categories</option>
+
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -305,7 +348,7 @@ export default function AdminProductsPage() {
             <button
               onClick={handleRefresh}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 border border-[#470d20]/15 px-5 py-4 font-mono text-[10px] tracking-wider transition-colors hover:bg-white disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 border border-[#470d20]/20 px-5 py-4 font-mono text-[10px] tracking-wider text-[#470d20] transition-colors hover:border-[#470d20] hover:bg-[#470d20] hover:text-[#f1e8d8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#470d20] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               REFRESH
@@ -324,10 +367,11 @@ export default function AdminProductsPage() {
               <button
                 key={value}
                 onClick={() => setStatusFilter(value)}
-                className={`border px-4 py-2.5 font-mono text-[9px] tracking-wider transition-colors ${
+                aria-pressed={statusFilter === value}
+                className={`border px-4 py-2.5 font-mono text-[9px] tracking-wider transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#470d20] ${
                   statusFilter === value
                     ? "border-[#470d20] bg-[#470d20] text-[#f1e8d8]"
-                    : "border-[#470d20]/15 text-[#470d20]/65 hover:border-[#470d20]"
+                    : "border-[#470d20]/20 text-[#470d20] hover:border-[#470d20] hover:bg-[#470d20]/5"
                 }`}
               >
                 {label.toUpperCase()}
@@ -339,7 +383,8 @@ export default function AdminProductsPage() {
             <div className="flex items-center justify-between border-b border-[#470d20]/10 px-5 py-5 sm:px-7">
               <div>
                 <h2 className="font-serif text-2xl">Your collection</h2>
-                <p className="mt-1 text-xs text-[#350817]/45">
+
+                <p className="mt-1 text-xs text-[#350817]/65">
                   {loading
                     ? "Loading catalogue..."
                     : `${filteredProducts.length} ${
@@ -348,7 +393,7 @@ export default function AdminProductsPage() {
                 </p>
               </div>
 
-              <Package size={20} className="text-[#9b806b]" />
+              <Package size={20} className="text-[#806c59]" />
             </div>
 
             {loading ? (
@@ -365,7 +410,7 @@ export default function AdminProductsPage() {
                 <Package
                   size={34}
                   strokeWidth={1.2}
-                  className="mx-auto text-[#9b806b]"
+                  className="mx-auto text-[#806c59]"
                 />
 
                 <h3 className="mt-5 font-serif text-3xl">
@@ -374,7 +419,7 @@ export default function AdminProductsPage() {
                     : "No products found."}
                 </h3>
 
-                <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#350817]/50">
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[#350817]/65">
                   {products.length === 0
                     ? "Add your first product to start building the AURELIS catalogue."
                     : "Try changing your search or filters."}
@@ -383,7 +428,8 @@ export default function AdminProductsPage() {
                 {products.length === 0 && (
                   <Link
                     href="/admin/products/new"
-                    className="mt-7 inline-flex items-center gap-2 bg-[#470d20] px-6 py-3.5 font-mono text-[10px] tracking-wider text-[#f1e8d8] hover:bg-[#64152f]"
+                    style={creamButtonStyle}
+                    className="mt-7 inline-flex items-center gap-2 px-6 py-3.5 font-mono text-[10px] tracking-wider transition-colors hover:!bg-[#64152f] hover:!text-[#f1e8d8] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#470d20]"
                   >
                     <Plus size={15} />
                     CREATE FIRST PRODUCT
@@ -410,7 +456,7 @@ export default function AdminProductsPage() {
                           <ImageIcon
                             size={23}
                             strokeWidth={1.2}
-                            className="text-[#9b806b]"
+                            className="text-[#806c59]"
                           />
                         )}
                       </div>
@@ -420,11 +466,11 @@ export default function AdminProductsPage() {
                           {product.name}
                         </h3>
 
-                        <p className="mt-1 truncate font-mono text-[9px] tracking-wider text-[#9b806b]">
+                        <p className="mt-1 truncate font-mono text-[9px] tracking-wider text-[#806c59]">
                           {product.sku || product.slug}
                         </p>
 
-                        <p className="mt-2 text-xs text-[#350817]/50">
+                        <p className="mt-2 text-xs text-[#350817]/70">
                           {product.category_name}
                         </p>
                       </div>
@@ -432,25 +478,27 @@ export default function AdminProductsPage() {
 
                     <div className="flex flex-wrap items-center gap-x-7 gap-y-3 sm:justify-end">
                       <div>
-                        <p className="font-mono text-[9px] tracking-wider text-[#9b806b]">
+                        <p className="font-mono text-[9px] tracking-wider text-[#806c59]">
                           PRICE
                         </p>
+
                         <p className="mt-1 text-sm font-medium">
                           {formatPrice(Number(product.price_paisa) / 100)}
                         </p>
                       </div>
 
                       <div>
-                        <p className="font-mono text-[9px] tracking-wider text-[#9b806b]">
+                        <p className="font-mono text-[9px] tracking-wider text-[#806c59]">
                           STOCK
                         </p>
+
                         <p
                           className={`mt-1 text-sm ${
                             product.stock_quantity <= 0
                               ? "text-red-700"
                               : product.stock_quantity <= 5
                                 ? "text-amber-700"
-                                : ""
+                                : "text-[#350817]"
                           }`}
                         >
                           {product.stock_quantity}
@@ -462,7 +510,7 @@ export default function AdminProductsPage() {
                           className={`inline-flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[9px] tracking-wider ${
                             product.is_published
                               ? "border-emerald-800/20 bg-emerald-50 text-emerald-800"
-                              : "border-[#9b806b]/25 bg-[#e8dece]/50 text-[#806c59]"
+                              : "border-[#806c59]/30 bg-[#e8dece] text-[#59432f]"
                           }`}
                         >
                           {product.is_published ? (
@@ -470,6 +518,7 @@ export default function AdminProductsPage() {
                           ) : (
                             <EyeOff size={11} />
                           )}
+
                           {product.is_published ? "PUBLISHED" : "DRAFT"}
                         </span>
                       </div>
@@ -478,7 +527,11 @@ export default function AdminProductsPage() {
                         <Link
                           href={`/admin/products/${product.id}/edit`}
                           aria-label={`Edit ${product.name}`}
-                          className="flex h-10 w-10 items-center justify-center border border-[#470d20]/15 transition-colors hover:bg-[#470d20] hover:text-[#f1e8d8]"
+                          title="Edit product"
+                          style={actionButtonStyle}
+                          onMouseEnter={handleActionMouseEnter}
+                          onMouseLeave={handleActionMouseLeave}
+                          className="inline-flex h-10 w-10 items-center justify-center border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#470d20]"
                         >
                           <Pencil size={15} />
                         </Link>
@@ -492,7 +545,10 @@ export default function AdminProductsPage() {
                               : `Publish ${product.name}`
                           }
                           title={product.is_published ? "Unpublish" : "Publish"}
-                          className="flex h-10 w-10 items-center justify-center border border-[#470d20]/15 transition-colors hover:bg-[#470d20] hover:text-[#f1e8d8] disabled:opacity-50"
+                          style={actionButtonStyle}
+                          onMouseEnter={handleActionMouseEnter}
+                          onMouseLeave={handleActionMouseLeave}
+                          className="inline-flex h-10 w-10 items-center justify-center border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#470d20] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {product.is_published ? (
                             <EyeOff size={15} />
@@ -510,7 +566,7 @@ export default function AdminProductsPage() {
         </section>
 
         <footer className="mt-16 border-t border-[#470d20]/10 pt-6">
-          <p className="font-mono text-[9px] tracking-[0.15em] text-[#350817]/40">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-[#350817]/60">
             AURELIS ADMINISTRATION · PRODUCT CATALOGUE
           </p>
         </footer>
