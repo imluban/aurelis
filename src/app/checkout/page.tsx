@@ -17,6 +17,30 @@ import {
 import { useCart } from "@/components/cart-provider";
 import { formatPrice } from "@/lib/products";
 import { bangladeshDivisions } from "@/lib/bangladesh";
+import {
+  isCustomerSelectablePoliceStation,
+  steadfastDistricts,
+} from "@/lib/steadfast-locations";
+
+// Steadfast uses a few legacy spellings that differ from the public district list.
+const steadfastDistrictAliases: Record<string, string> = {
+  Bogra: "Bogura",
+  Chittagong: "Chattogram",
+  Khagrachori: "Khagrachhari",
+  Kustia: "Kushtia",
+  Laxmipur: "Lakshmipur",
+  Narshindi: "Narsingdi",
+  Panchgarh: "Panchagarh",
+  Shatkhira: "Satkhira",
+};
+
+function getPublicDistrictName(steadfastName: string): string {
+  if (steadfastName === "Dhaka City" || steadfastName === "Dhaka Sub-Urban") {
+    return "Dhaka";
+  }
+
+  return steadfastDistrictAliases[steadfastName] ?? steadfastName;
+}
 
 export default function CheckoutPage() {
   const { items, updateQuantity, removeItem } = useCart();
@@ -24,7 +48,29 @@ export default function CheckoutPage() {
   const [deliveryMethod, setDeliveryMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [submitted, setSubmitted] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedDistrictId, setSelectedDistrictId] = useState("");
+  const [selectedPoliceStationId, setSelectedPoliceStationId] = useState("");
+
+  const selectedDistrict = steadfastDistricts.find(
+    (district) => String(district.id) === selectedDistrictId,
+  );
+
+  const selectedPoliceStations =
+    selectedDistrict?.policestations.filter(
+      isCustomerSelectablePoliceStation,
+    ) ?? [];
+
+  const selectedPoliceStation = selectedPoliceStations.find(
+    (station) => String(station.id) === selectedPoliceStationId,
+  );
+
+  const selectedPublicDistrictName = selectedDistrict
+    ? getPublicDistrictName(selectedDistrict.name)
+    : "";
+
+  const selectedDivision = bangladeshDivisions.find((division) =>
+    division.districts.includes(selectedPublicDistrictName),
+  )?.name;
 
   const subtotal = items.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -198,54 +244,88 @@ export default function CheckoutPage() {
 
                     <select
                       id="district"
-                      name="district"
+                      name="districtId"
                       required
                       autoComplete="address-level1"
-                      value={selectedDistrict}
+                      value={selectedDistrictId}
                       onChange={(event) => {
-                        setSelectedDistrict(event.target.value);
+                        setSelectedDistrictId(event.target.value);
+                        setSelectedPoliceStationId("");
                         setSubmitted(false);
                       }}
                       className="w-full border border-[#470d20]/20 bg-white/60 px-4 py-4 text-sm outline-none transition focus:border-[#470d20]"
                     >
                       <option value="">Select your district</option>
 
-                      {bangladeshDivisions.map((division) => (
-                        <optgroup key={division.name} label={division.name}>
-                          {division.districts.map((district) => (
-                            <option key={district} value={district}>
-                              {district}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
+                      {bangladeshDivisions.map((division) => {
+                        const divisionDistricts = steadfastDistricts
+                          .filter((district) =>
+                            bangladeshDivisions
+                              .find((item) => item.name === division.name)
+                              ?.districts.includes(
+                                getPublicDistrictName(district.name),
+                              ),
+                          )
+                          .sort((a, b) => a.name.localeCompare(b.name));
+
+                        return (
+                          <optgroup key={division.name} label={division.name}>
+                            {divisionDistricts.map((district) => (
+                              <option key={district.id} value={district.id}>
+                                {district.name === "Dhaka City"
+                                  ? "Dhaka — City"
+                                  : district.name === "Dhaka Sub-Urban"
+                                    ? "Dhaka — Sub-Urban"
+                                    : getPublicDistrictName(district.name)}
+                              </option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
                     </select>
 
                     {selectedDistrict && (
                       <p className="mt-2 text-xs text-[#80645b]">
-                        Selected district: {selectedDistrict}
-                        {" · "}
-                        {
-                          bangladeshDivisions.find((division) =>
-                            division.districts.includes(selectedDistrict),
-                          )?.name
-                        }{" "}
-                        Division
+                        {selectedDistrict.name} · {selectedDivision} Division
                       </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="mb-2 block font-mono text-[10px] tracking-wider">
+                    <label
+                      htmlFor="policeStation"
+                      className="mb-2 block font-mono text-[10px] tracking-wider"
+                    >
                       AREA / THANA *
                     </label>
-                    <input
-                      name="area"
-                      type="text"
+                    <select
+                      id="policeStation"
+                      name="policeStationId"
                       required
-                      placeholder="Your area or thana"
-                      className="w-full border border-[#470d20]/20 bg-white/60 px-4 py-4 text-sm outline-none transition placeholder:text-[#80645b]/60 focus:border-[#470d20]"
-                    />
+                      disabled={!selectedDistrict}
+                      value={selectedPoliceStationId}
+                      onChange={(event) => {
+                        setSelectedPoliceStationId(event.target.value);
+                        setSubmitted(false);
+                      }}
+                      className="w-full border border-[#470d20]/20 bg-white/60 px-4 py-4 text-sm outline-none transition focus:border-[#470d20] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option value="">
+                        {selectedDistrict
+                          ? "Select your area / thana"
+                          : "Select district first"}
+                      </option>
+                      {selectedPoliceStations.map((station) => (
+                        <option key={station.id} value={station.id}>
+                          {station.name}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedPoliceStation && (
+                      <p className="mt-2 text-xs text-[#80645b]">
+                        Steadfast destination ID: {selectedPoliceStation.id}
+                      </p>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2">
@@ -433,9 +513,12 @@ export default function CheckoutPage() {
                       Details validated
                     </div>
                     <p className="mt-2 text-xs leading-6 text-[#80645b]">
-                      Your form passed browser validation. This is a checkout
-                      preview only; order placement and payment processing have
-                      not been connected yet.
+                      Your form passed browser validation. Destination:{" "}
+                      {selectedDistrict?.name} / {selectedPoliceStation?.name}{" "}
+                      (Steadfast IDs: {selectedDistrict?.id} /{" "}
+                      {selectedPoliceStation?.id}). This is still a checkout
+                      preview; order placement and payment processing are not
+                      connected yet.
                     </p>
                   </div>
                 )}

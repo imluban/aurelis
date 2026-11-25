@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProductDetail from "@/components/product-detail";
-import { getProductBySlug } from "@/lib/products";
+import { getStorefrontCatalogue } from "@/lib/catalogue";
 
 export const metadata: Metadata = {
   title: "Discover a Product",
@@ -32,13 +32,29 @@ async function ProductContent({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const catalogue = await getStorefrontCatalogue();
+
+  if (catalogue.error) {
+    throw new Error(catalogue.error);
+  }
+
+  const product = catalogue.products.find((item) => item.slug === slug);
 
   if (!product) {
     notFound();
   }
 
-  return <ProductDetail product={product} />;
+  const relatedProducts = catalogue.products
+    .filter((item) => item.id !== product.id)
+    .sort((a, b) => {
+      const aSameCategory = a.category === product.category ? 1 : 0;
+      const bSameCategory = b.category === product.category ? 1 : 0;
+
+      return bSameCategory - aSameCategory;
+    })
+    .slice(0, 3);
+
+  return <ProductDetail product={product} relatedProducts={relatedProducts} />;
 }
 
 export default function ProductPage({

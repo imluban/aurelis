@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { categories, products, formatPrice } from "@/lib/products";
+import { formatPrice, type Product } from "@/lib/products";
+import type { StorefrontCategory } from "@/lib/catalogue";
 import {
   ArrowDownUp,
   ArrowRight,
@@ -14,11 +15,19 @@ import {
 
 type SortOption = "featured" | "newest" | "price-low" | "price-high";
 
+type ShopExperienceProps = {
+  initialQuery?: string;
+  categories: StorefrontCategory[];
+  products: Product[];
+  catalogueError: string | null;
+};
+
 export default function ShopExperience({
   initialQuery = "",
-}: {
-  initialQuery?: string;
-}) {
+  categories,
+  products,
+  catalogueError,
+}: ShopExperienceProps) {
   const [activeCategory, setActiveCategory] = useState("All products");
   const [query, setQuery] = useState(initialQuery);
   const [sort, setSort] = useState<SortOption>("featured");
@@ -56,13 +65,18 @@ export default function ShopExperience({
     }
 
     return result;
-  }, [activeCategory, query, sort]);
+  }, [activeCategory, query, sort, products]);
 
   function clearFilters() {
     setActiveCategory("All products");
     setQuery("");
     setSort("featured");
   }
+
+  const categoryOptions = [
+    "All products",
+    ...categories.map((category) => category.name),
+  ];
 
   return (
     <main className="min-h-screen bg-[#f8f4ed] text-[#470d20]">
@@ -146,6 +160,7 @@ export default function ShopExperience({
                 aria-label="Search products"
                 className="h-12 min-w-0 flex-1 bg-transparent text-sm text-[#470d20] outline-none placeholder:text-[#9a8980]"
               />
+
               {query && (
                 <button
                   type="button"
@@ -205,13 +220,19 @@ export default function ShopExperience({
                     CATEGORIES
                   </p>
                   <span className="font-mono text-[9px] text-[#8b6d66]">
-                    05
+                    {String(categories.length).padStart(2, "0")}
                   </span>
                 </div>
 
                 <nav className="mt-3 flex flex-col">
-                  {categories.map((category, index) => {
+                  {categoryOptions.map((category) => {
                     const active = activeCategory === category;
+                    const count =
+                      category === "All products"
+                        ? products.length
+                        : products.filter(
+                            (product) => product.category === category,
+                          ).length;
 
                     return (
                       <button
@@ -234,13 +255,7 @@ export default function ShopExperience({
                             active ? "text-[#8b6d66]" : "text-[#b9a58a]"
                           }`}
                         >
-                          {index === 0
-                            ? String(products.length).padStart(2, "0")
-                            : String(
-                                products.filter(
-                                  (product) => product.category === category,
-                                ).length,
-                              ).padStart(2, "0")}
+                          {String(count).padStart(2, "0")}
                         </span>
                       </button>
                     );
@@ -306,13 +321,19 @@ export default function ShopExperience({
                         href={`/products/${product.slug}`}
                         className="block"
                       >
-                        <div className="relative aspect-[4/5] overflow-hidden bg-[#e8dece]">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            loading={index < 3 ? "eager" : "lazy"}
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.045]"
-                          />
+                        <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-[#e8dece]">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              loading={index < 3 ? "eager" : "lazy"}
+                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.045]"
+                            />
+                          ) : (
+                            <span className="px-5 text-center font-serif text-xl italic text-[#8b6d66]">
+                              AURELIS
+                            </span>
+                          )}
 
                           {product.badge && (
                             <span className="absolute top-3 left-3 bg-[#f1e8d8] px-2.5 py-2 font-mono text-[7px] tracking-[0.12em] text-[#470d20] sm:top-4 sm:left-4 sm:text-[8px]">
@@ -339,18 +360,24 @@ export default function ShopExperience({
 
                         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="text-sm font-semibold text-[#470d20]">
-                            formatPrice(product.price)
+                            {formatPrice(product.price)}
                           </span>
 
-                          {product.oldPrice && (
+                          {product.oldPrice !== null && (
                             <span className="text-xs text-[#9a8980] line-through">
-                              formatPrice(product.oldPrice)
+                              {formatPrice(product.oldPrice)}
                             </span>
                           )}
                         </div>
 
                         <p className="mt-2 flex items-center gap-2 text-[9px] text-[#8b6d66]">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#71866b]" />
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              product.availability === "Available"
+                                ? "bg-[#71866b]"
+                                : "bg-[#a65c52]"
+                            }`}
+                          />
                           {product.availability}
                         </p>
                       </div>
@@ -364,25 +391,38 @@ export default function ShopExperience({
                   </div>
 
                   <p className="mt-6 font-mono text-[9px] tracking-[0.18em] text-[#8b6d66]">
-                    NOTHING FOUND
+                    {catalogueError
+                      ? "COLLECTION UNAVAILABLE"
+                      : products.length === 0
+                        ? "A NEW COLLECTION IS TAKING SHAPE"
+                        : "NOTHING FOUND"}
                   </p>
 
                   <h3 className="mt-3 font-serif text-3xl">
-                    A different discovery awaits.
+                    {catalogueError
+                      ? "We’ll be back shortly."
+                      : products.length === 0
+                        ? "Something worth discovering."
+                        : "A different discovery awaits."}
                   </h3>
 
                   <p className="mt-3 max-w-[340px] text-sm leading-6 text-[#76645d]">
-                    We couldn&apos;t find anything matching your search. Try
-                    another term or explore the full collection.
+                    {catalogueError
+                      ? catalogueError
+                      : products.length === 0
+                        ? "Our collection is being prepared. Check back soon for thoughtfully selected finds from AURELIS."
+                        : "We couldn’t find anything matching your search. Try another term or explore the full collection."}
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="mt-7 inline-flex items-center gap-3 bg-[#470d20] px-6 py-4 text-[9px] tracking-[0.15em] text-[#f1e8d8] uppercase transition-colors hover:bg-[#64152f]"
-                  >
-                    Clear all filters <ArrowRight size={14} />
-                  </button>
+                  {products.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="mt-7 inline-flex items-center gap-3 bg-[#470d20] px-6 py-4 text-[9px] tracking-[0.15em] text-[#f1e8d8] uppercase transition-colors hover:bg-[#64152f]"
+                    >
+                      Clear all filters <ArrowRight size={14} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>

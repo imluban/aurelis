@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import ShopExperience from "@/components/shop-experience";
+import { getStorefrontCatalogue } from "@/lib/catalogue";
 
 export const metadata: Metadata = {
   title: "Shop the Collection",
@@ -27,6 +28,7 @@ function ShopLoading() {
           </h1>
         </div>
       </section>
+
       <div className="mx-auto max-w-[1440px] px-6 py-16">
         <div className="h-8 w-48 animate-pulse bg-[#e8dece]" />
         <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3">
@@ -43,13 +45,23 @@ function ShopLoading() {
 }
 
 async function ShopContent({ searchParams }: ShopPageProps) {
-  const params = await searchParams;
+  const [params, catalogue] = await Promise.all([
+    searchParams,
+    getStorefrontCatalogue(),
+  ]);
 
   const initialQuery = Array.isArray(params.q)
     ? (params.q[0] ?? "")
     : (params.q ?? "");
 
-  return <ShopExperience initialQuery={initialQuery} />;
+  return (
+    <ShopExperience
+      initialQuery={initialQuery}
+      categories={catalogue.categories}
+      products={catalogue.products}
+      catalogueError={catalogue.error}
+    />
+  );
 }
 
 export default function ShopPage({ searchParams }: ShopPageProps) {

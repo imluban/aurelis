@@ -12,26 +12,27 @@ import {
   Plus,
   ShoppingBag,
 } from "lucide-react";
-import { products, formatPrice, type Product } from "@/lib/products";
+import { formatPrice, type Product } from "@/lib/products";
 
-export default function ProductDetail({ product }: { product: Product }) {
+type ProductDetailProps = {
+  product: Product;
+  relatedProducts: Product[];
+};
+
+export default function ProductDetail({
+  product,
+  relatedProducts,
+}: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [message, setMessage] = useState("");
   const { addItem } = useCart();
 
-  const relatedProducts = products
-    .filter(
-      (item) => item.id !== product.id && item.category === product.category,
-    )
-    .concat(
-      products.filter(
-        (item) => item.id !== product.id && item.category !== product.category,
-      ),
-    )
-    .slice(0, 3);
+  const isAvailable = product.availability === "Available";
 
   function addToBag() {
+    if (!isAvailable) return;
+
     addItem(
       {
         id: product.id,
@@ -75,13 +76,19 @@ export default function ProductDetail({ product }: { product: Product }) {
       <section className="mx-auto grid max-w-[1440px] gap-10 px-5 py-9 sm:px-8 sm:py-12 lg:grid-cols-[1.08fr_0.92fr] lg:gap-20 lg:px-16 lg:py-16">
         {/* IMAGE */}
         <div>
-          <div className="relative aspect-[4/5] overflow-hidden bg-[#e8dece]">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="h-full w-full object-cover"
-              fetchPriority="high"
-            />
+          <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-[#e8dece]">
+            {product.image ? (
+              <img
+                src={product.image}
+                alt={product.name}
+                className="h-full w-full object-cover"
+                fetchPriority="high"
+              />
+            ) : (
+              <span className="font-serif text-3xl italic text-[#8b6d66]">
+                AURELIS
+              </span>
+            )}
 
             {product.badge && (
               <span className="absolute top-5 left-5 bg-[#f1e8d8] px-3 py-2 font-mono text-[8px] tracking-[0.14em] text-[#470d20]">
@@ -127,7 +134,7 @@ export default function ProductDetail({ product }: { product: Product }) {
               {formatPrice(product.price)}
             </span>
 
-            {product.oldPrice && (
+            {product.oldPrice !== null && (
               <>
                 <span className="text-base text-[#9a8980] line-through">
                   {formatPrice(product.oldPrice)}
@@ -147,7 +154,11 @@ export default function ProductDetail({ product }: { product: Product }) {
 
           {/* AVAILABILITY */}
           <div className="mt-8 flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-[#71866b]" />
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isAvailable ? "bg-[#71866b]" : "bg-[#a65c52]"
+              }`}
+            />
             <span className="font-mono text-[9px] tracking-[0.13em] text-[#76645d]">
               {product.availability.toUpperCase()}
             </span>
@@ -165,7 +176,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                 onClick={() =>
                   setQuantity((current) => Math.max(1, current - 1))
                 }
-                disabled={quantity <= 1}
+                disabled={quantity <= 1 || !isAvailable}
                 aria-label="Decrease quantity"
                 className="flex h-full w-12 items-center justify-center transition-colors hover:bg-[#470d20] hover:text-[#f1e8d8] disabled:cursor-not-allowed disabled:opacity-35"
               >
@@ -181,13 +192,14 @@ export default function ProductDetail({ product }: { product: Product }) {
                 onClick={() =>
                   setQuantity((current) => Math.min(10, current + 1))
                 }
-                disabled={quantity >= 10}
+                disabled={quantity >= 10 || !isAvailable}
                 aria-label="Increase quantity"
                 className="flex h-full w-12 items-center justify-center transition-colors hover:bg-[#470d20] hover:text-[#f1e8d8] disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <Plus size={14} />
               </button>
             </div>
+
             <p className="mt-2 text-[10px] text-[#8b6d66]">
               Maximum 10 per addition
             </p>
@@ -197,20 +209,23 @@ export default function ProductDetail({ product }: { product: Product }) {
           <button
             type="button"
             onClick={addToBag}
-            className="mt-7 flex min-h-14 w-full items-center justify-center gap-3 bg-[#470d20] px-6 py-4 font-mono text-[10px] tracking-[0.16em] text-[#f1e8d8] uppercase transition-colors hover:bg-[#64152f]"
+            disabled={!isAvailable}
+            className="mt-7 flex min-h-14 w-full items-center justify-center gap-3 bg-[#470d20] px-6 py-4 font-mono text-[10px] tracking-[0.16em] text-[#f1e8d8] uppercase transition-colors hover:bg-[#64152f] disabled:cursor-not-allowed disabled:bg-[#8b6d66]"
           >
             {added ? <Check size={17} /> : <ShoppingBag size={17} />}
-            {added ? "ADDED TO YOUR BAG" : "ADD TO BAG"}
-            <ArrowUpRight size={15} className="ml-auto" />
+            {!isAvailable
+              ? "CURRENTLY SOLD OUT"
+              : added
+                ? "ADDED TO YOUR BAG"
+                : "ADD TO BAG"}
+            {isAvailable && <ArrowUpRight size={15} className="ml-auto" />}
           </button>
 
           {message && (
             <p
               role="status"
               aria-live="polite"
-              className={`mt-3 text-xs ${
-                added ? "text-[#52694d]" : "text-[#9b3434]"
-              }`}
+              className="mt-3 text-xs text-[#52694d]"
             >
               {message}
             </p>
@@ -226,23 +241,25 @@ export default function ProductDetail({ product }: { product: Product }) {
           </div>
 
           {/* PRODUCT DETAILS */}
-          <div className="mt-9">
-            <p className="font-mono text-[9px] tracking-[0.17em] text-[#8b6d66]">
-              THE DETAILS
-            </p>
+          {product.details.length > 0 && (
+            <div className="mt-9">
+              <p className="font-mono text-[9px] tracking-[0.17em] text-[#8b6d66]">
+                THE DETAILS
+              </p>
 
-            <ul className="mt-5 space-y-4">
-              {product.details.map((detail) => (
-                <li
-                  key={detail}
-                  className="flex items-start gap-3 text-sm text-[#76645d]"
-                >
-                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#b9a58a]" />
-                  {detail}
-                </li>
-              ))}
-            </ul>
-          </div>
+              <ul className="mt-5 space-y-4">
+                {product.details.map((detail) => (
+                  <li
+                    key={detail}
+                    className="flex items-start gap-3 text-sm text-[#76645d]"
+                  >
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#b9a58a]" />
+                    {detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-10 bg-[#efe6d8] p-6 sm:p-7">
             <p className="font-mono text-[9px] tracking-[0.17em] text-[#8b6d66]">
@@ -257,62 +274,72 @@ export default function ProductDetail({ product }: { product: Product }) {
       </section>
 
       {/* RELATED PRODUCTS */}
-      <section className="bg-[#350817] px-5 py-16 text-[#f1e8d8] sm:px-8 lg:px-16 lg:py-20">
-        <div className="mx-auto max-w-[1440px]">
-          <div className="flex items-end justify-between gap-5">
-            <div>
-              <p className="font-mono text-[9px] tracking-[0.18em] text-[#d2bea5]">
-                CONTINUE DISCOVERING
-              </p>
-              <h2 className="mt-3 font-serif text-4xl sm:text-5xl">
-                You may also like.
-              </h2>
+      {relatedProducts.length > 0 && (
+        <section className="bg-[#350817] px-5 py-16 text-[#f1e8d8] sm:px-8 lg:px-16 lg:py-20">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="flex items-end justify-between gap-5">
+              <div>
+                <p className="font-mono text-[9px] tracking-[0.18em] text-[#d2bea5]">
+                  CONTINUE DISCOVERING
+                </p>
+                <h2 className="mt-3 font-serif text-4xl sm:text-5xl">
+                  You may also like.
+                </h2>
+              </div>
+
+              <Link
+                href="/shop"
+                className="hidden items-center gap-2 font-mono text-[9px] tracking-[0.12em] text-[#d2bea5] transition-colors hover:text-white sm:flex"
+              >
+                EXPLORE ALL <ArrowRight size={14} />
+              </Link>
             </div>
 
-            <Link
-              href="/shop"
-              className="hidden items-center gap-2 font-mono text-[9px] tracking-[0.12em] text-[#d2bea5] transition-colors hover:text-white sm:flex"
-            >
-              EXPLORE ALL <ArrowRight size={14} />
-            </Link>
-          </div>
+            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
+              {relatedProducts.map((item) => (
+                <Link
+                  href={`/products/${item.slug}`}
+                  key={item.id}
+                  className="group"
+                >
+                  <div className="flex aspect-[4/5] items-center justify-center overflow-hidden bg-[#470d20]">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      <span className="font-serif text-xl italic text-[#d2bea5]">
+                        AURELIS
+                      </span>
+                    )}
+                  </div>
 
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
-            {relatedProducts.map((item) => (
-              <Link
-                href={`/products/${item.slug}`}
-                key={item.id}
-                className="group"
-              >
-                <div className="aspect-[4/5] overflow-hidden bg-[#470d20]">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
+                  <p className="mt-4 font-mono text-[7px] tracking-[0.12em] text-[#d2bea5] sm:text-[8px]">
+                    {item.category.toUpperCase()}
+                  </p>
 
-                <p className="mt-4 font-mono text-[7px] tracking-[0.12em] text-[#d2bea5] sm:text-[8px]">
-                  {item.category.toUpperCase()}
-                </p>
-                <div className="mt-2 flex items-start justify-between gap-2">
-                  <h3 className="font-serif text-xl sm:text-2xl">
-                    {item.name}
-                  </h3>
-                  <ArrowUpRight
-                    size={15}
-                    className="mt-1 shrink-0 text-[#d2bea5] transition-transform group-hover:translate-x-1 group-hover:-translate-y-1"
-                  />
-                </div>
-                <p className="mt-2 text-xs text-[#d2bea5]">
-                  {formatPrice(item.price)}
-                </p>
-              </Link>
-            ))}
+                  <div className="mt-2 flex items-start justify-between gap-2">
+                    <h3 className="font-serif text-xl sm:text-2xl">
+                      {item.name}
+                    </h3>
+                    <ArrowUpRight
+                      size={15}
+                      className="mt-1 shrink-0 text-[#d2bea5] transition-transform group-hover:translate-x-1 group-hover:-translate-y-1"
+                    />
+                  </div>
+
+                  <p className="mt-2 text-xs text-[#d2bea5]">
+                    {formatPrice(item.price)}
+                  </p>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }
