@@ -24,6 +24,10 @@ import {
   Plus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import ProductVariantsEditor, {
+  type ProductVariantDraft,
+  type VariantOptionGroup,
+} from "@/components/admin/product-variants-editor";
 
 type Category = {
   id: string;
@@ -89,7 +93,9 @@ function SectionHeading({
       <p className="font-mono text-[9px] tracking-[0.2em] text-[#9b806b]">
         {number} / {eyebrow}
       </p>
+
       <h2 className="mt-2 font-serif text-3xl text-[#350817]">{title}</h2>
+
       {description && (
         <p className="mt-2 text-xs leading-5 text-[#350817]/50">
           {description}
@@ -104,6 +110,7 @@ export default function NewProductPage() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   const previewUrls = useRef<string[]>([]);
 
   // Product information
@@ -127,6 +134,10 @@ export default function NewProductPage() {
   const [stockQuantity, setStockQuantity] = useState("0");
   const [lowStockThreshold, setLowStockThreshold] = useState("5");
   const [allowBackorder, setAllowBackorder] = useState(false);
+
+  // Product variants
+  const [variantGroups, setVariantGroups] = useState<VariantOptionGroup[]>([]);
+  const [variants, setVariants] = useState<ProductVariantDraft[]>([]);
 
   // Shipping
   const [productType, setProductType] = useState<"physical" | "digital">(
@@ -224,13 +235,6 @@ export default function NewProductPage() {
 
     if (selectedFiles.length === 0) return;
 
-    const remainingSlots = MAX_IMAGES - images.length;
-
-    if (remainingSlots <= 0) {
-      setError(`You can add a maximum of ${MAX_IMAGES} images.`);
-      return;
-    }
-
     const accepted: GalleryImage[] = [];
     const errors: string[] = [];
 
@@ -277,6 +281,7 @@ export default function NewProductPage() {
 
     if (image) {
       URL.revokeObjectURL(image.preview);
+
       previewUrls.current = previewUrls.current.filter(
         (url) => url !== image.preview,
       );
@@ -303,6 +308,7 @@ export default function NewProductPage() {
       }
 
       const updated = [...current];
+
       [updated[index], updated[nextIndex]] = [
         updated[nextIndex],
         updated[index],
@@ -319,7 +325,9 @@ export default function NewProductPage() {
 
     setImages((current) => {
       const updated = [...current];
+
       const fromIndex = updated.findIndex((item) => item.id === draggedImageId);
+
       const toIndex = updated.findIndex((item) => item.id === targetId);
 
       if (fromIndex < 0 || toIndex < 0) return current;
@@ -362,21 +370,74 @@ export default function NewProductPage() {
     );
   }
 
+  function validateVariants() {
+    for (let index = 0; index < variants.length; index += 1) {
+      const variant = variants[index];
+
+      if (!variant.variant_name.trim()) {
+        return `Variant ${index + 1} needs a name.`;
+      }
+
+      const variantStock = Number(variant.stock_quantity);
+
+      if (
+        !Number.isInteger(variantStock) ||
+        variantStock < 0 ||
+        variant.stock_quantity.trim() === ""
+      ) {
+        return `Enter a valid stock quantity for variant ${variant.variant_name}.`;
+      }
+
+      const variantPrice =
+        variant.price.trim() === ""
+          ? numericPriceForValidation()
+          : Number(variant.price);
+
+      if (!Number.isFinite(variantPrice) || variantPrice <= 0) {
+        return `Enter a valid price for variant ${variant.variant_name}.`;
+      }
+
+      if (variant.price.trim() !== "" && variantPrice <= 0) {
+        return `The price for ${variant.variant_name} must be greater than zero.`;
+      }
+
+      if (variant.compareAtPrice.trim() !== "") {
+        const comparePrice = Number(variant.compareAtPrice);
+
+        if (!Number.isFinite(comparePrice) || comparePrice <= variantPrice) {
+          return `The compare-at price for ${variant.variant_name} must be higher than its selling price.`;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function numericPriceForValidation() {
+    return Number(price);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
     const numericPrice = Number(price);
+
     const numericComparePrice =
       compareAtPrice.trim() === "" ? null : Number(compareAtPrice);
+
     const numericSalePrice = salePrice.trim() === "" ? null : Number(salePrice);
+
     const numericStock = Number(stockQuantity);
     const numericLowStock = Number(lowStockThreshold);
+
     const numericWeight =
       weightGrams.trim() === "" ? null : Number(weightGrams);
 
     const numericLength = lengthCm.trim() === "" ? null : Number(lengthCm);
+
     const numericWidth = widthCm.trim() === "" ? null : Number(widthCm);
+
     const numericHeight = heightCm.trim() === "" ? null : Number(heightCm);
 
     if (!name.trim() || !slug.trim() || !categoryId) {
@@ -458,18 +519,33 @@ export default function NewProductPage() {
       return;
     }
 
+    if (images.length > 0 && !primaryImageId) {
+      setError("Please select a primary cover image.");
+      return;
+    }
+
     if (publishAt && new Date(publishAt) <= new Date()) {
       setError("Choose a future date and time for scheduled publishing.");
+      return;
+    }
+
+    const variantError = validateVariants();
+
+    if (variantError) {
+      setError(variantError);
       return;
     }
 
     setSaving(true);
 
     const supabase = createClient();
+
     const uploadedPaths: string[] = [];
+
     let createdProductId: string | null = null;
 
     try {
+      // 1. Create the main product.
       const { data: product, error: insertError } = await supabase
         .from("products")
         .insert({
@@ -482,6 +558,7 @@ export default function NewProductPage() {
           description: description.trim() || null,
 
           price_paisa: Math.round(numericPrice * 100),
+
           compare_at_price_paisa:
             numericComparePrice === null
               ? null
@@ -491,6 +568,7 @@ export default function NewProductPage() {
             numericSalePrice === null
               ? null
               : Math.round(numericSalePrice * 100),
+
           sale_starts_at: dateToIso(saleStartsAt),
           sale_ends_at: dateToIso(saleEndsAt),
 
@@ -499,21 +577,27 @@ export default function NewProductPage() {
           allow_backorder: allowBackorder,
 
           product_type: productType,
+
           weight_grams: productType === "physical" ? numericWeight : null,
 
           dimension_length_cm:
             productType === "physical" ? numericLength : null,
+
           dimension_width_cm: productType === "physical" ? numericWidth : null,
+
           dimension_height_cm:
             productType === "physical" ? numericHeight : null,
+
           shipping_class:
             productType === "physical" ? shippingClass.trim() || null : null,
+
           is_fragile: productType === "physical" ? isFragile : false,
 
           image_url: null,
 
           seo_title: seoTitle.trim() || name.trim(),
           seo_description: seoDescription.trim() || null,
+
           tags: Array.from(
             new Set(
               tagsInput
@@ -526,6 +610,7 @@ export default function NewProductPage() {
           is_featured: isFeatured,
           is_new_arrival: isNewArrival,
           is_bestseller: isBestseller,
+
           is_published: publishAt ? false : isPublished,
           publish_at: dateToIso(publishAt),
         })
@@ -536,11 +621,12 @@ export default function NewProductPage() {
 
       createdProductId = product.id;
 
-      // Upload all gallery images, then create their database records.
+      // 2. Upload gallery images.
       const galleryRows = [];
 
       for (let index = 0; index < images.length; index += 1) {
         const image = images[index];
+
         const extension = image.file.name.split(".").pop()?.toLowerCase();
 
         if (!extension) {
@@ -583,6 +669,7 @@ export default function NewProductPage() {
         if (galleryError) throw galleryError;
       }
 
+      // 3. Save product attributes.
       const attributeRows = attributes
         .filter((attribute) => attribute.name.trim() && attribute.value.trim())
         .map((attribute, index) => ({
@@ -600,18 +687,80 @@ export default function NewProductPage() {
         if (attributesError) throw attributesError;
       }
 
+      // 4. Save product variants.
+      if (variants.length > 0) {
+        const variantRows = variants.map((variant, index) => {
+          const variantPrice =
+            variant.price.trim() === ""
+              ? null
+              : Math.round(Number(variant.price) * 100);
+
+          const variantCompareAtPrice =
+            variant.compareAtPrice.trim() === ""
+              ? null
+              : Math.round(Number(variant.compareAtPrice) * 100);
+
+          return {
+            product_id: product.id,
+
+            variant_name: variant.variant_name.trim(),
+
+            option_values: variant.option_values,
+
+            sku: variant.sku.trim() || null,
+
+            price_paisa: variantPrice,
+
+            compare_at_price_paisa: variantCompareAtPrice,
+
+            stock_quantity: Number(variant.stock_quantity),
+
+            image_url: variant.image_url.trim() || null,
+
+            is_active: variant.is_active,
+
+            sort_order: index,
+          };
+        });
+
+        const { error: variantsError } = await supabase
+          .from("product_variants")
+          .insert(variantRows);
+
+        if (variantsError) throw variantsError;
+      }
+
+      // 5. Navigate after everything has been saved.
       router.push("/admin/products");
       router.refresh();
     } catch (err) {
       console.error("AURELIS product creation error:", err);
 
-      // Clean up any partially created product and uploaded files.
+      // Remove the partially created product.
+      // Related database records are removed through their foreign keys.
       if (createdProductId) {
-        await supabase.from("products").delete().eq("id", createdProductId);
+        const { error: deleteError } = await supabase
+          .from("products")
+          .delete()
+          .eq("id", createdProductId);
+
+        if (deleteError) {
+          console.error(
+            "Could not clean up partially created product:",
+            deleteError,
+          );
+        }
       }
 
+      // Remove any uploaded files.
       if (uploadedPaths.length > 0) {
-        await supabase.storage.from("product-images").remove(uploadedPaths);
+        const { error: storageError } = await supabase.storage
+          .from("product-images")
+          .remove(uploadedPaths);
+
+        if (storageError) {
+          console.error("Could not clean up uploaded images:", storageError);
+        }
       }
 
       setError(
@@ -685,6 +834,7 @@ export default function NewProductPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className={labelClass}>PRODUCT NAME *</label>
+
                 <input
                   required
                   maxLength={180}
@@ -697,6 +847,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className={labelClass}>BRAND</label>
+
                 <input
                   value={brand}
                   onChange={(event) => setBrand(event.target.value)}
@@ -708,6 +859,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className={labelClass}>SKU / PRODUCT CODE</label>
+
                 <input
                   value={sku}
                   onChange={(event) => setSku(event.target.value)}
@@ -719,6 +871,7 @@ export default function NewProductPage() {
 
               <div className="sm:col-span-2">
                 <label className={labelClass}>URL SLUG *</label>
+
                 <input
                   required
                   maxLength={180}
@@ -727,6 +880,7 @@ export default function NewProductPage() {
                   placeholder="signature-leather-tote"
                   className={inputClass}
                 />
+
                 <p className="mt-2 text-[11px] text-[#350817]/45">
                   Used in the product URL. English letters, numbers and hyphens.
                 </p>
@@ -734,6 +888,7 @@ export default function NewProductPage() {
 
               <div className="sm:col-span-2">
                 <label className={labelClass}>CATEGORY *</label>
+
                 <select
                   required
                   value={categoryId}
@@ -748,6 +903,7 @@ export default function NewProductPage() {
                         ? "No active categories available"
                         : "Select a category"}
                   </option>
+
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -758,6 +914,7 @@ export default function NewProductPage() {
 
               <div className="sm:col-span-2">
                 <label className={labelClass}>SHORT DESCRIPTION</label>
+
                 <input
                   maxLength={250}
                   value={shortDescription}
@@ -769,6 +926,7 @@ export default function NewProductPage() {
 
               <div className="sm:col-span-2">
                 <label className={labelClass}>FULL DESCRIPTION</label>
+
                 <textarea
                   rows={7}
                   value={description}
@@ -794,6 +952,7 @@ export default function NewProductPage() {
                 <p className="font-serif text-2xl">
                   {images.length} <span className="text-[#9b806b]">/ 15</span>
                 </p>
+
                 <p className="mt-1 text-[11px] text-[#350817]/45">
                   {images.length === 0
                     ? "No images selected yet"
@@ -833,12 +992,15 @@ export default function NewProductPage() {
                   strokeWidth={1.2}
                   className="text-[#9b806b]"
                 />
+
                 <span className="mt-4 font-serif text-2xl">
                   Add product photographs
                 </span>
+
                 <span className="mt-2 text-xs text-[#350817]/50">
                   Select one or multiple images from your device
                 </span>
+
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -927,6 +1089,7 @@ export default function NewProductPage() {
                           <label className="mb-1 block font-mono text-[9px] tracking-wider text-[#9b806b]">
                             IMAGE ALT TEXT
                           </label>
+
                           <input
                             value={image.altText}
                             onChange={(event) =>
@@ -998,6 +1161,7 @@ export default function NewProductPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>SELLING PRICE (BDT) *</label>
+
                 <input
                   required
                   type="number"
@@ -1014,6 +1178,7 @@ export default function NewProductPage() {
                 <label className={labelClass}>
                   ORIGINAL / COMPARE-AT PRICE
                 </label>
+
                 <input
                   type="number"
                   min="0.01"
@@ -1023,6 +1188,7 @@ export default function NewProductPage() {
                   placeholder="Optional"
                   className={inputClass}
                 />
+
                 <p className="mt-2 text-[11px] text-[#350817]/45">
                   Must be higher than the selling price.
                 </p>
@@ -1037,6 +1203,7 @@ export default function NewProductPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>SALE PRICE (BDT)</label>
+
                   <input
                     type="number"
                     min="0.01"
@@ -1046,6 +1213,7 @@ export default function NewProductPage() {
                     placeholder="Optional"
                     className={inputClass}
                   />
+
                   <p className="mt-2 text-[11px] text-[#350817]/45">
                     Must not exceed the regular selling price.
                   </p>
@@ -1055,6 +1223,7 @@ export default function NewProductPage() {
 
                 <div>
                   <label className={labelClass}>SALE STARTS</label>
+
                   <input
                     type="datetime-local"
                     value={saleStartsAt}
@@ -1065,6 +1234,7 @@ export default function NewProductPage() {
 
                 <div>
                   <label className={labelClass}>SALE ENDS</label>
+
                   <input
                     type="datetime-local"
                     value={saleEndsAt}
@@ -1088,6 +1258,7 @@ export default function NewProductPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
                 <label className={labelClass}>STOCK QUANTITY *</label>
+
                 <input
                   required
                   type="number"
@@ -1101,6 +1272,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className={labelClass}>LOW-STOCK WARNING LEVEL</label>
+
                 <input
                   type="number"
                   min="0"
@@ -1109,6 +1281,7 @@ export default function NewProductPage() {
                   onChange={(event) => setLowStockThreshold(event.target.value)}
                   className={inputClass}
                 />
+
                 <p className="mt-2 text-[11px] text-[#350817]/45">
                   Flag this product when stock reaches this quantity.
                 </p>
@@ -1122,10 +1295,12 @@ export default function NewProductPage() {
                 onChange={(event) => setAllowBackorder(event.target.checked)}
                 className="mt-1 h-4 w-4 accent-[#470d20]"
               />
+
               <span>
                 <span className="block text-sm font-medium">
                   Allow backorders
                 </span>
+
                 <span className="mt-1 block text-xs text-[#350817]/50">
                   Allow customers to order this product when its stock reaches
                   zero. This setting is stored for the future checkout inventory
@@ -1135,10 +1310,21 @@ export default function NewProductPage() {
             </label>
           </section>
 
-          {/* 05 — SHIPPING */}
+          {/* 05 — VARIANTS */}
+          <section className={sectionClass}>
+            <ProductVariantsEditor
+              groups={variantGroups}
+              variants={variants}
+              onGroupsChange={setVariantGroups}
+              onVariantsChange={setVariants}
+              baseSku={sku}
+            />
+          </section>
+
+          {/* 06 — SHIPPING */}
           <section className={sectionClass}>
             <SectionHeading
-              number="05"
+              number="06"
               eyebrow="SHIPPING"
               title="Delivery details"
               description="Physical product measurements will help with future courier calculations."
@@ -1146,6 +1332,7 @@ export default function NewProductPage() {
 
             <div>
               <label className={labelClass}>PRODUCT TYPE *</label>
+
               <select
                 value={productType}
                 onChange={(event) =>
@@ -1162,6 +1349,7 @@ export default function NewProductPage() {
               <>
                 <div className="mt-6">
                   <label className={labelClass}>WEIGHT (GRAMS) *</label>
+
                   <input
                     required
                     type="number"
@@ -1182,6 +1370,7 @@ export default function NewProductPage() {
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div>
                       <label className={labelClass}>LENGTH</label>
+
                       <input
                         type="number"
                         min="0"
@@ -1195,6 +1384,7 @@ export default function NewProductPage() {
 
                     <div>
                       <label className={labelClass}>WIDTH</label>
+
                       <input
                         type="number"
                         min="0"
@@ -1208,6 +1398,7 @@ export default function NewProductPage() {
 
                     <div>
                       <label className={labelClass}>HEIGHT</label>
+
                       <input
                         type="number"
                         min="0"
@@ -1223,6 +1414,7 @@ export default function NewProductPage() {
 
                 <div className="mt-7">
                   <label className={labelClass}>SHIPPING CLASS</label>
+
                   <input
                     value={shippingClass}
                     onChange={(event) => setShippingClass(event.target.value)}
@@ -1239,10 +1431,12 @@ export default function NewProductPage() {
                     onChange={(event) => setIsFragile(event.target.checked)}
                     className="mt-1 h-4 w-4 accent-[#470d20]"
                   />
+
                   <span>
                     <span className="block text-sm font-medium">
                       Fragile item
                     </span>
+
                     <span className="mt-1 block text-xs text-[#350817]/50">
                       Mark this product as requiring careful handling.
                     </span>
@@ -1252,10 +1446,10 @@ export default function NewProductPage() {
             )}
           </section>
 
-          {/* 06 — ATTRIBUTES */}
+          {/* 07 — ATTRIBUTES */}
           <section className={sectionClass}>
             <SectionHeading
-              number="06"
+              number="07"
               eyebrow="PRODUCT DETAILS"
               title="Specifications & attributes"
               description="Add useful product information such as material, colour, dimensions, care instructions or technical specifications."
@@ -1309,10 +1503,10 @@ export default function NewProductPage() {
             </button>
           </section>
 
-          {/* 07 — SEO */}
+          {/* 08 — SEO */}
           <section className={sectionClass}>
             <SectionHeading
-              number="07"
+              number="08"
               eyebrow="SEARCH & DISCOVERY"
               title="SEO and product tags"
               description="Help search engines and customers understand what this product is about."
@@ -1321,12 +1515,14 @@ export default function NewProductPage() {
             <div className="space-y-6">
               <div>
                 <label className={labelClass}>PRODUCT TAGS</label>
+
                 <input
                   value={tagsInput}
                   onChange={(event) => setTagsInput(event.target.value)}
                   placeholder="leather, tote bag, accessories, premium"
                   className={inputClass}
                 />
+
                 <p className="mt-2 text-[11px] text-[#350817]/45">
                   Separate tags with commas.
                 </p>
@@ -1334,6 +1530,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className={labelClass}>SEO TITLE</label>
+
                 <input
                   value={seoTitle}
                   onChange={(event) => setSeoTitle(event.target.value)}
@@ -1345,6 +1542,7 @@ export default function NewProductPage() {
 
               <div>
                 <label className={labelClass}>SEO META DESCRIPTION</label>
+
                 <textarea
                   rows={4}
                   value={seoDescription}
@@ -1353,6 +1551,7 @@ export default function NewProductPage() {
                   placeholder="Write a concise description for search engine results..."
                   className={`${inputClass} resize-y leading-6`}
                 />
+
                 <p className="mt-2 text-right text-[10px] text-[#350817]/40">
                   {seoDescription.length}/320
                 </p>
@@ -1360,10 +1559,10 @@ export default function NewProductPage() {
             </div>
           </section>
 
-          {/* 08 — PUBLISHING */}
+          {/* 09 — PUBLISHING */}
           <section className={sectionClass}>
             <SectionHeading
-              number="08"
+              number="09"
               eyebrow="STORE VISIBILITY"
               title="The finishing touch"
               description="Choose how this product will appear in your AURELIS store."
@@ -1407,10 +1606,12 @@ export default function NewProductPage() {
                     onChange={(event) => item.change(event.target.checked)}
                     className="mt-1 h-4 w-4 accent-[#470d20]"
                   />
+
                   <span>
                     <span className="block text-sm font-medium">
                       {item.label}
                     </span>
+
                     <span className="mt-1 block text-xs text-[#350817]/50">
                       {item.description}
                     </span>
@@ -1422,17 +1623,20 @@ export default function NewProductPage() {
                 <label className={labelClass}>
                   SCHEDULED PUBLICATION (OPTIONAL)
                 </label>
+
                 <input
                   type="datetime-local"
                   value={publishAt}
                   onChange={(event) => setPublishAt(event.target.value)}
                   className={inputClass}
                 />
+
                 <p className="mt-2 text-[11px] leading-5 text-[#350817]/45">
                   A scheduled publication time is saved with the product.
                   Automatic publishing requires a scheduled server process,
                   which we&apos;ll implement separately.
                 </p>
+
                 {publishAt && (
                   <p className="mt-3 text-xs text-[#470d20]">
                     Scheduled products will be saved as drafts until the
@@ -1462,6 +1666,7 @@ export default function NewProductPage() {
               ) : (
                 <Save size={16} />
               )}
+
               {saving ? "SAVING PRODUCT..." : "SAVE PRODUCT"}
             </button>
           </div>
