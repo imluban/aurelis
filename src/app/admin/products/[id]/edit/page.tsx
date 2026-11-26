@@ -1074,6 +1074,14 @@ function EditProductPageContent() {
           .insert(variantRows);
 
         if (insertVariantsError) throw insertVariantsError;
+      } else {
+        // No variants: preserve the manually entered product stock.
+        const { error: stockUpdateError } = await supabase
+          .from("products")
+          .update({ stock_quantity: numericStock })
+          .eq("id", productId);
+
+        if (stockUpdateError) throw stockUpdateError;
       }
 
       // Remove storage files for images removed from the gallery.
