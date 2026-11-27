@@ -112,7 +112,7 @@ button,
 input,
 textarea,
 select {
-  font: inherit;
+  font-family: inherit;
 }
 
 button {
@@ -375,5 +375,20 @@ textarea::placeholder {
 
   .section-spacing {
     padding-block: 64px;
+  }
+}
+
+/* AURELIS — GLOBAL STOREFRONT SHELL */
+
+.storefront-glass {
+  background: rgba(241, 232, 216, 0.85);
+  border: 1px solid rgba(210, 190, 165, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+@media (max-width: 640px) {
+  html {
+    scroll-padding-top: 90px;
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/components/cart-provider";
 import { formatPrice } from "@/lib/products";
@@ -15,6 +16,7 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
+import Image from "next/image";
 
 const categories = [
   {
@@ -50,6 +52,7 @@ const categories = [
 ];
 
 export default function StorefrontHeader() {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
@@ -75,40 +78,54 @@ export default function StorefrontHeader() {
     setBagOpen(panel === "bag" ? !bagOpen : false);
   }
 
+  const navItemClass =
+    "relative flex h-9 w-full appearance-none items-center justify-center rounded-full border border-transparent bg-transparent p-0 font-sans text-[10px] font-bold leading-none tracking-[0.12em] uppercase text-[#470d20] no-underline shadow-none outline-none transition-colors duration-200 hover:border-[#470d20]/15 hover:bg-[#470d20]/[0.07] hover:text-[#9b6b70] focus-visible:outline-none";
+
+  const activeNavStyle = {
+    backgroundColor: "#470d20",
+    color: "#f1e8d8",
+    borderColor: "#470d20",
+  };
+
   return (
     <>
-      <header className="relative z-40 bg-[#f1e8d8] text-[#470d20]">
+      <header className="fixed top-3 left-1/2 z-50 w-[calc(100%-100px)] max-w-[1160px] -translate-x-1/2 rounded-full border border-[#d2bea5]/55 bg-[#f1e8d8]/85 text-[#470d20] shadow-[0_12px_45px_rgba(35,5,15,0.18)] backdrop-blur-2xl">
         {/* MAIN NAVIGATION */}
-        <div className="mx-auto flex h-[78px] max-w-[1600px] items-center justify-between border-b border-[#470d20]/15 px-5 sm:px-8 lg:px-16">
+        <div className="mx-auto flex h-[62px] items-center justify-between rounded-full px-3 sm:px-5 lg:px-7">
           {/* DESKTOP LINKS */}
-          <nav className="hidden h-full items-center gap-8 lg:flex">
-            <button
-              type="button"
+          <nav className="hidden h-full w-[360px] grid-cols-3 items-center gap-1 lg:grid">
+            <Link
+              href="#discover"
+              role="button"
               aria-expanded={menuOpen}
-              onClick={() => togglePanel("menu")}
-              className={`flex h-full items-center gap-2 text-[10px] tracking-[0.17em] uppercase transition-colors ${
-                menuOpen ? "text-[#8b5c62]" : "hover:text-[#9b6b70]"
-              }`}
+              onClick={(event) => {
+                event.preventDefault();
+                togglePanel("menu");
+              }}
+              className={navItemClass}
+              style={menuOpen ? activeNavStyle : undefined}
             >
-              Discover
+              <span>Discover</span>
               <ChevronDown
-                size={13}
-                className={`transition-transform duration-300 ${
+                size={12}
+                className={`absolute right-3 pointer-events-none transition-transform duration-300 ${
                   menuOpen ? "rotate-180" : ""
                 }`}
               />
-            </button>
+            </Link>
 
             <Link
               href="/collections"
-              className="text-[10px] tracking-[0.17em] uppercase transition-colors hover:text-[#9b6b70]"
+              className={navItemClass}
+              style={pathname === "/collections" ? activeNavStyle : undefined}
             >
               Collections
             </Link>
 
             <Link
               href="/about"
-              className="text-[10px] tracking-[0.17em] uppercase transition-colors hover:text-[#9b6b70]"
+              className={navItemClass}
+              style={pathname === "/about" ? activeNavStyle : undefined}
             >
               Our Story
             </Link>
@@ -129,45 +146,66 @@ export default function StorefrontHeader() {
             </span>
           </button>
 
-          {/* BRAND WORDMARK */}
+          {/* BRAND LOGO */}
           <Link
             href="/"
             onClick={closeAll}
             aria-label="AURELIS homepage"
-            className="absolute left-1/2 -translate-x-1/2 text-center"
+            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
           >
-            <span className="block font-serif text-[27px] font-medium tracking-[0.2em] text-[#470d20] sm:text-[31px]">
-              AURELIS
-            </span>
-
-            <span className="mt-1 hidden font-mono text-[7px] tracking-[0.2em] text-[#80645b] sm:block">
-              BEYOND ORDINARY, WITHIN REACH
-            </span>
+            <Image
+              src="/aurelis-logo.png"
+              alt="AURELIS"
+              width={180}
+              height={60}
+              priority
+              className="!h-[34px] !w-[125px] object-contain sm:!h-[34px] sm:!w-[145px]"
+            />
           </Link>
 
           {/* ACTION ICONS */}
-          <div className="ml-auto flex items-center gap-5">
+          <div className="ml-auto flex items-center gap-2">
+            {/* SEARCH */}
             <button
               type="button"
               aria-label="Open search"
               aria-expanded={searchOpen}
               onClick={() => togglePanel("search")}
-              className="text-[#470d20] transition-colors hover:text-[#9b6b70]"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-transparent text-[#470d20] transition-colors duration-200 hover:border-[#470d20]/15 hover:bg-[#470d20]/[0.07] hover:text-[#9b6b70]"
+              style={
+                searchOpen
+                  ? {
+                      backgroundColor: "#470d20",
+                      color: "#f1e8d8",
+                      borderColor: "#470d20",
+                    }
+                  : undefined
+              }
             >
-              <Search size={19} strokeWidth={1.5} />
+              <Search size={18} strokeWidth={1.7} />
             </button>
 
+            {/* SHOPPING BAG */}
             <button
               type="button"
               aria-label={`Open shopping bag, ${itemCount} items`}
               aria-expanded={bagOpen}
               onClick={() => togglePanel("bag")}
-              className="relative text-[#470d20] transition-colors hover:text-[#9b6b70]"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-transparent text-[#470d20] transition-colors duration-200 hover:border-[#470d20]/15 hover:bg-[#470d20]/[0.07] hover:text-[#9b6b70]"
+              style={
+                bagOpen
+                  ? {
+                      backgroundColor: "#470d20",
+                      color: "#f1e8d8",
+                      borderColor: "#470d20",
+                    }
+                  : undefined
+              }
             >
-              <ShoppingBag size={19} strokeWidth={1.5} />
+              <ShoppingBag size={18} strokeWidth={1.7} />
 
               {itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#470d20] px-1 text-[9px] text-[#f1e8d8]">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#470d20] px-1 text-[9px] text-[#f1e8d8]">
                   {itemCount > 99 ? "99+" : itemCount}
                 </span>
               )}

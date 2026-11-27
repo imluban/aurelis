@@ -1,4 +1,3 @@
-import StorefrontHeader from "@/components/storefront-header";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
@@ -90,16 +89,6 @@ function SectionLabel({
 export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#470d20] text-[#f1e8d8]">
-      {/* ANNOUNCEMENT BAR */}
-      <div className="flex min-h-9 items-center justify-center bg-[#350817] px-4 py-2 text-center text-[9px] tracking-[0.2em] text-[#f1e8d8] uppercase sm:text-[10px]">
-        Beyond Ordinary, Within Reach.
-        <span className="mx-3 text-[#b9a58a]">✳</span>
-        Discover AURELIS
-      </div>
-
-      {/* INTERACTIVE HEADER */}
-      <StorefrontHeader />
-
       {/* CINEMATIC HERO */}
       <section className="relative flex min-h-[650px] items-center overflow-hidden bg-[#250711] text-[#f1e8d8] sm:min-h-[720px] lg:min-h-[790px]">
         <div
@@ -378,101 +367,6 @@ export default function Home() {
           </p>
         </div>
       </section>
-
-      {/* FOOTER — WINE */}
-      <footer className="bg-[#250711] text-[#f1e8d8]">
-        <div className="container-main py-16">
-          <div className="grid gap-12 border-b border-white/15 pb-14 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
-            <div>
-              <Link href="/" className="font-serif text-4xl tracking-[0.17em]">
-                AURELIS
-              </Link>
-
-              <p className="mt-3 font-mono text-[9px] tracking-[0.2em] text-[#d2bea5]">
-                BEYOND ORDINARY, WITHIN REACH.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="mb-5 font-mono text-[10px] tracking-[0.17em] text-[#d2bea5] uppercase">
-                Explore
-              </h3>
-
-              <div className="flex flex-col gap-3 text-sm text-[#e3d9cc]">
-                <a href="/shop" className="hover:text-white">
-                  Shop all
-                </a>
-                <a href="/collections" className="hover:text-white">
-                  Collections
-                </a>
-                <a href="/about" className="hover:text-white">
-                  Our story
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-5 font-mono text-[10px] tracking-[0.17em] text-[#d2bea5] uppercase">
-                Assistance
-              </h3>
-
-              <div className="flex flex-col gap-3 text-sm text-[#e3d9cc]">
-                <a href="/contact" className="hover:text-white">
-                  Contact us
-                </a>
-                <a href="/track-order" className="hover:text-white">
-                  Track an order
-                </a>
-                <a href="/shipping" className="hover:text-white">
-                  Delivery information
-                </a>
-                <a href="/returns" className="hover:text-white">
-                  Returns & refunds
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-5 font-mono text-[10px] tracking-[0.17em] text-[#d2bea5] uppercase">
-                Follow along
-              </h3>
-
-              <div className="flex gap-5 text-[#e3d9cc]">
-                <a
-                  href="#"
-                  aria-label="Instagram"
-                  className="text-xs tracking-wider transition-colors hover:text-white"
-                >
-                  IG
-                </a>
-                <a
-                  href="#"
-                  aria-label="Facebook"
-                  className="text-xs tracking-wider transition-colors hover:text-white"
-                >
-                  FB
-                </a>
-              </div>
-
-              <p className="mt-6 text-sm text-[#c9b9aa]">Made for discovery.</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between gap-4 pt-7 text-[9px] tracking-[0.12em] text-[#b9a58a] sm:flex-row">
-            <p>© 2026 AURELIS. ALL RIGHTS RESERVED.</p>
-
-            <div className="flex gap-6">
-              <a href="/privacy" className="hover:text-white">
-                PRIVACY
-              </a>
-              <a href="/terms" className="hover:text-white">
-                TERMS
-              </a>
-              <span>MADE BY LAXON</span>
-            </div>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }

@@ -84,22 +84,8 @@ export default function CheckoutPage() {
 
   return (
     <main className="min-h-screen bg-[#f8f4ed] text-[#470d20]">
-      {/* HEADER */}
-      <header className="border-b border-[#470d20]/15 bg-[#f8f4ed]">
-        <div className="container-main flex min-h-[76px] items-center justify-between">
-          <Link href="/" className="font-serif text-3xl tracking-[0.17em]">
-            AURELIS
-          </Link>
-
-          <div className="flex items-center gap-2 font-mono text-[9px] tracking-[0.16em] text-[#80645b]">
-            <LockKeyhole size={13} />
-            SECURE CHECKOUT
-          </div>
-        </div>
-      </header>
-
       {/* INTRO */}
-      <section className="bg-[#350817] px-5 py-12 text-[#f1e8d8] sm:py-16">
+      <section className="bg-[#350817] px-5 pt-16 pb-12 text-[#f1e8d8] sm:pt-32 sm:pb-16">
         <div className="container-main">
           <Link
             href="/shop"
@@ -660,14 +646,6 @@ export default function CheckoutPage() {
           </form>
         )}
       </section>
-
-      {/* FOOTER */}
-      <footer className="bg-[#350817] px-5 py-8 text-center text-[#f1e8d8]">
-        <p className="font-serif text-xl tracking-[0.15em]">AURELIS</p>
-        <p className="mt-2 font-mono text-[9px] tracking-[0.15em] text-[#d2bea5]">
-          BEYOND ORDINARY, WITHIN REACH.
-        </p>
-      </footer>
     </main>
   );
 }

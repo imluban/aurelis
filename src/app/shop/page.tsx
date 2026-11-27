@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import ShopExperience from "@/components/shop-experience";
 import { getStorefrontCatalogue } from "@/lib/catalogue";
@@ -45,6 +46,8 @@ function ShopLoading() {
 }
 
 async function ShopContent({ searchParams }: ShopPageProps) {
+  await connection();
+
   const [params, catalogue] = await Promise.all([
     searchParams,
     getStorefrontCatalogue(),

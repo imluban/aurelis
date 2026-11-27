@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import CartProvider from "@/components/cart-provider";
+import StorefrontShell from "@/components/storefront-shell";
 import { Cormorant_Garamond, Manrope, DM_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -60,7 +61,9 @@ export default function RootLayout({
       className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}
     >
       <body>
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          <StorefrontShell>{children}</StorefrontShell>
+        </CartProvider>
       </body>
     </html>
   );
